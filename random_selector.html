@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>随机选择程序</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            width: 800px;
+            max-width: 90%;
+            animation: fadeIn 0.5s ease-out;
+        }
+        h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        textarea {
+            width: calc(100% - 34px); /* 减去padding和border的宽度 */
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            min-height: 100px;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            box-sizing: border-box; /* 确保宽度计算包含padding和border */
+            resize: vertical; /* 只允许垂直调整大小 */
+            max-width: 100%; /* 防止超出父容器 */
+        }
+        /* 修改按钮样式部分 */
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.2rem;
+            width: 180px;
+            height: 60px;
+            line-height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            transition: all 0.2s cubic-bezier(0.5, 1.5, 0.5, 1); /* 修改为弹性动画 */
+        }
+        button:active {
+            transform: scale(0.85); /* 增加缩小比例 */
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 为随机选择按钮添加更明显的效果 */
+        button[type="submit"]:active {
+            transform: scale(0.8);
+            background-color: #0062cc;
+            box-shadow: 0 0 25px rgba(0, 123, 255, 0.7);
+        }
+        
+        /* 为清除按钮添加更明显的效果 */
+        #clearBtn:active {
+            transform: scale(0.8);
+            background-color: #bd2130;
+            box-shadow: 0 0 25px rgba(220, 53, 69, 0.7);
+        }
+        #clearBtn {
+            background-color: #dc3545;
+            margin-left: 20px;
+            width: 180px;
+            height: 60px;
+        }
+        #result {
+            font-size: 1.5rem;
+            margin-top: 30px;
+            transition: all 0.3s ease;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #historyContainer h3 {
+            font-size: 1.5rem;
+        }
+        #historyList li {
+            font-size: 1.2rem;
+            padding: 12px 20px;
+        }
+        .highlight {
+            font-size: 1.2em;
+            color: #007BFF;
+            font-weight: bold;
+            transition: color 0.1s;
+        }
+        .highlight.winner {
+            animation: pulse 0.5s infinite alternate;
+        }
+        .highlight.persistent {
+            animation: none;
+            color: #ff5722;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(255,87,34,0.5);
+            transform: scale(1.1);
+        }
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 90%;
+                padding: 15px;
+            }
+            button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            #clearBtn {
+                margin-left: 0;
+            }
+        }
+        #historyContainer {
+            margin-top: 20px;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            /* 添加以下属性防止横向滚动条 */
+            overflow-x: hidden;
+        }
+        #historyList li {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            /* 确保内容不换行也不会溢出 */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #historyList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #historyList li {
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            /* 添加以下优化 */
+            transform: translateX(0);
+            transition: transform 0.2s ease, background 0.2s ease;
+            will-change: transform;
+        }
+        #historyList li:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+            /* 移除原来的transition声明 */
+        }
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* 在style标签中添加 */
+        #historyList li {
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        #historySearch {
+            transition: all 0.2s ease;
+        }
+        #historySearch:focus {
+            border-color: #007BFF;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <h1 contenteditable="true" id="title">随机选择程序</h1>
+            <span class="edit-hint" style="color: #666; cursor: help; display: none;" title="点击标题可编辑">✏️</span>
+        </div>
+        <form id="nameForm">
+            <label for="names">请输入名字，用逗号分隔：</label>
+            <textarea id="names" name="names" required></textarea>
+            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+                <button type="submit">开始</button>
+                <button type="button" id="clearBtn" style="display: none;">清除历史记录</button>
+                <button type="button" id="resetHighlightBtn" style="display: none;">清除高亮</button>
+            </div>
+        </form>
+        <p id="result"></p>
+        <div id="progressContainer" style="margin: 20px 0; visibility: hidden; height: 35px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span>选择进度:</span>
+                <span id="progressText">0%</span>
+            </div>
+            <div style="height: 10px; background: #e9ecef; border-radius: 5px; overflow: hidden;">
+                <div id="progressBar" style="height: 100%; width: 0%; background: #007BFF; transition: width 0.1s ease;"></div>
+            </div>
+        </div>
+        <!-- 在container div内部，放在historyContainer之后 -->
+        <div id="historyContainer" style="display: none;">
+            <h3>📜 历史记录：</h3>
+            <ul id="historyList"></ul>
+        </div>
+        
+        <!-- 将快捷键提示移到container内部，并调整样式 -->
+        <div style="margin: 20px auto 0; font-size: 0.9rem; color: #666; text-align: center; width: 100%;">
+            <small>提示：按 Enter 键开始选择，按 Esc 键清除历史记录</small>
+        </div>
+    </div>
+
+    <script>
+        let selectedNames = [];
+        let history = [];
+
+        if(localStorage.getItem('randomSelectorHistory')) {
+            try {
+                history = JSON.parse(localStorage.getItem('randomSelectorHistory'));
+                if(history.length > 0) {
+                    updateHistoryDisplay();
+                }
+            } catch(e) {
+                console.error("解析历史记录出错:", e);
+                localStorage.removeItem('randomSelectorHistory');
+            }
+        }
+
+        // 在脚本顶部添加
+        let isSelecting = false;
+        
+        // 修改表单提交处理
+        document.getElementById('nameForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const textarea = document.getElementById('names');
+            textarea.blur(); // 关闭移动端键盘
+            
+            if(isSelecting) return;
+            isSelecting = true;
+            
+            // 增强分隔符处理
+            const names = namesInput
+                .replace(/[\r\n\s]+/g, ',')  // 添加空白字符处理
+                .replace(/[，、；;|]+/g, ',')
+                .split(',')
+                .map(name => name.trim())
+                .filter(name => name.length > 0);
+            
+            if (names.length === 0) {
+                alert("没有检测到有效的名字，请检查输入格式！");
+                return;
+            }
+            
+            const availableNames = names.filter(name => !selectedNames.includes(name));
+            
+            if (availableNames.length > 0) {
+                document.getElementById('result').innerHTML = `
+                    <span class="highlight">正在随机选择中...</span>
+                `;
+                
+                let counter = 0;
+                const maxIterations = 15;
+                document.getElementById('progressContainer').style.visibility = 'visible';
+                const interval = setInterval(() => {
+                    const progress = Math.floor((counter / maxIterations) * 100);
+                    document.getElementById('progressBar').style.width = `${progress}%`;
+                    document.getElementById('progressText').textContent = `${progress}%`;
+                    const tempIndex = Math.floor(Math.random() * availableNames.length);
+                    document.getElementById('result').innerHTML = `
+                        <span class="highlight">${availableNames[tempIndex]}</span>
+                    `;
+                    
+                    counter++;
+                    if (counter >= maxIterations) {
+                        clearInterval(interval);
+                        document.getElementById('progressContainer').style.visibility = 'hidden';
+                        const finalIndex = Math.floor(Math.random() * availableNames.length);
+                        const result = availableNames[finalIndex];
+                        selectedNames.push(result);
+                        history.push({
+                            name: result,
+                            time: new Date()
+                        });
+                        
+                        // 修改结果显示处理
+                        const resultElement = document.getElementById('result');
+                        resultElement.innerHTML = `
+                            随机选择的结果是：<span class="highlight winner">${result}</span>
+                            <small style="display:block;margin-top:8px;">点击结果可保持高亮</small>
+                        `;
+                        
+                        // 添加触摸事件支持
+                        resultElement.querySelector('.highlight').addEventListener('touchend', function(e) {
+                            e.preventDefault();
+                            this.classList.toggle('persistent');
+                            this.classList.toggle('winner');
+                        });
+                        
+                        updateHistoryDisplay();
+                        isSelecting = false;  // 选择完成，重置状态
+                        submitBtn.textContent = '随机选择';  // 恢复按钮文字
+                        isSelecting = false;
+                    }
+                }, 150);
+            } else {
+                document.getElementById('result').textContent = "所有名字都已被选择过，请重新输入。";
+                selectedNames = [];
+                isSelecting = false;  // 选择完成，重置状态
+                submitBtn.textContent = '随机选择';  // 恢复按钮文字
+                isSelecting = false;
+            }
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            // 只有在非选择状态下才能清除
+            if(isSelecting) {
+                alert("请等待随机选择完成后再操作");
+                return;
+            }
+            
+            if(confirm("确定要清空所有历史记录吗？")) {
+                history = [];
+                selectedNames = [];
+                document.getElementById('historyContainer').style.display = 'none';
+                document.getElementById('clearBtn').style.display = 'none';
+                document.getElementById('result').textContent = '';
+                localStorage.removeItem('randomSelectorHistory');
+            }
+        });
+
+        const title = document.getElementById('title');
+        const editHint = document.querySelector('.edit-hint');
+        
+        title.addEventListener('focus', function() {
+            editHint.style.display = 'inline';
+        });
+        
+        title.addEventListener('blur', function() {
+            editHint.style.display = 'none';
+        });
+
+        // 修改updateHistoryDisplay函数
+        function updateHistoryDisplay() {
+            if (history.length > 0) {
+                // 使用文档片段提高性能
+                const fragment = document.createDocumentFragment();
+                history.slice().reverse().forEach((item, index) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span>${history.length - index}. ${item.name}</span>
+                        <small>${formatTime(new Date(item.time))}</small>
+                    `;
+                    // 添加点击事件
+                    li.addEventListener('click', async function() {
+                        try {
+                            await navigator.clipboard.writeText(history[history.length - 1 - index].name);
+                            const originalHTML = li.innerHTML;
+                            li.innerHTML = `
+                                <span style="color:#28a745">✓ 已复制 ${history[history.length - 1 - index].name}</span>
+                                <small>${formatTime(new Date(history[history.length - 1 - index].time))}</small>
+                            `;
+                            setTimeout(() => {
+                                li.innerHTML = originalHTML;
+                            }, 1000);
+                        } catch (err) {
+                            console.error('复制失败:', err);
+                            alert('复制失败，请手动复制');
+                        }
+                    });
+                });
+                
+                document.getElementById('historyContainer').style.display = 'block';
+                document.getElementById('clearBtn').style.display = 'inline-block';
+                
+                // 自动滚动到最新记录
+                if (listItems.length > 0) {
+                    listItems[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+                
+                try {
+                    localStorage.setItem('randomSelectorHistory', JSON.stringify(history));
+                } catch(e) {
+                    console.error("保存到本地存储失败:", e);
+                }
+            } else {
+                document.getElementById('historyContainer').style.display = 'none';
+                document.getElementById('clearBtn').style.display = 'none';
+                localStorage.removeItem('randomSelectorHistory');
+            }
+        }
+
+        function formatTime(date) {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const seconds = date.getSeconds().toString().padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+        // 在脚本初始化部分添加（放在其他事件监听器附近）
+        // 修改键盘事件处理
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.repeat) {
+                e.preventDefault();
+                // 添加防抖处理
+                if(!this.lastKeyTime || (Date.now() - this.lastKeyTime > 300)) {
+                    this.lastKeyTime = Date.now();
+                    // ...触发提交...
+                }
+            }
+        });
+    </script>
+</body>
+</html>
